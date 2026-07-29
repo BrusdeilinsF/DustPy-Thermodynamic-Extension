@@ -1,7 +1,10 @@
 # DustPy-Thermodynamic-Extension
-Integration of a simplified thermodynamic model based on Ziampras et al. (2025) and a opacity computation based on gray opacities into the DustPy framework by Stammler &amp; Birnstiel (2022)
+This repository contains the code developed for the bachelor's thesis:
 
-I want to thank T. Birnstiel for all the support and advise working on this project for my bachelor thesis
+*Extending DustPy: Integrating a Thermodynamic Model into Protoplanetary
+Disk Simulations*
+
+A special thank goes T. Birnstiel for all the support and advise working on this project.
 
 Uses a simplified version of the thermodynamic model described in:
 A. Ziampras, C. P. Dullemond, T. Birnstiel, M. Benisty, and R. P. Nelson. Spirals, rings,
