@@ -1,6 +1,8 @@
 # DustPy-Thermodynamic-Extension
 Integration of a simplified thermodynamic model based on Ziampras et al. (2025) and a opacity computation based on gray opacities into the DustPy framework by Stammler &amp; Birnstiel (2022)
 
+I want to thank T. Birnstiel for all the support and advise working on this project for my bachelor thesis
+
 Uses a simplified version of the thermodynamic model described in:
 A. Ziampras, C. P. Dullemond, T. Birnstiel, M. Benisty, and R. P. Nelson. Spirals, rings,
 and vortices shaped by shadows in protoplanetary discs: from radiative hydrodynamical
