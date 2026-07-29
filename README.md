@@ -4,8 +4,8 @@ This repository contains the code developed for the bachelor's thesis:
 *Extending DustPy: Integrating a Thermodynamic Model into Protoplanetary
 Disk Simulations*
 
-A special thank goes T. Birnstiel for all the support and advise working on this project.
-
+A special thank goes T. Birnstiel for all the support and advise working on this project.\\
+\\
 Uses a simplified version of the thermodynamic model described in:
 A. Ziampras, C. P. Dullemond, T. Birnstiel, M. Benisty, and R. P. Nelson. Spirals, rings,
 and vortices shaped by shadows in protoplanetary discs: from radiative hydrodynamical
