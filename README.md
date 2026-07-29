@@ -10,3 +10,8 @@ simulations to observable signatures. Monthly notices of the royal astronomical 
 Uses the opacity table "default_opacities_smooth.npz" by:
 Birnstiel, T., Dullemond, C. P., Zhu, Z., et al. 2018, ApJL, 869, L45 
 https://github.com/birnstiel/dsharp_opac/blob/master/dsharp_opac/data/default_opacities_smooth.npz.
+
+Integrated into the DustPy framework by:
+S. M. Stammler and T. Birnstiel. DustPy: A Python Package for Dust Evolution in Protoplane-
+tary Disks. The Astrophysical Journal, 935(1):35, Aug. 2022. doi: 10.3847/1538-4357/ac7d58.
+URL https://stammler.github.io/dustpy/index.html.
