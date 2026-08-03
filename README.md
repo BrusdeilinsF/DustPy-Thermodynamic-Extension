@@ -4,7 +4,7 @@ This repository contains the code developed for the bachelor's thesis:<br>
 *Extending DustPy: Integrating a Thermodynamic Model into Protoplanetary
 Disk Simulations*<br>
 <br>
-A special thank goes T. Birnstiel for all the support and advise working on this project.<br>
+A special thank goes T. Birnstiel for giving me the opportunity to work on this project for my bachelor thesis and for all the insight, explanations, support and advise you gave me over the last months.<br>
 <br>
 Uses a simplified version of the thermodynamic model described in:<br>
 A. Ziampras, C. P. Dullemond, T. Birnstiel, M. Benisty, and R. P. Nelson. Spirals, rings,
