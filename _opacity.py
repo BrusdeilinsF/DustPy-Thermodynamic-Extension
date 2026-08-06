@@ -126,115 +126,68 @@ class opacity():
 
     def plot_kappa(self):
         """
-        function for plotting the resulting opacities in a logarithmic 2D-plot: 
-        - x-axis: temperature T [K]
-        - y-axis: opacities kappa_*(a(r),T) [cm^2 g^-1]
+        Plot the resulting mean opacities as logarithmic 2D scatter plots.
+        - x-axis: Temperature T(r) [K]
+        - y-axis: Planck and Rosseland mean opacities [cm^2 g^-1]
+        - color: Mass-weighted mean grain size a_mean(r) [cm]
         """
+
         if self._last_kappa is None:
             raise RuntimeError('No opacities computed yet')
 
-        T = self._last_kappa["T"]
+        a_cm = np.asarray(self._last_kappa['a'], dtype = float)
+        T = np.asarray(self._last_kappa['T'], dtype = float)
+        weights = np.asarray(self._last_kappa['weights'], dtype = float)
+        kappa_P = np.asarray(self._last_kappa["kappa_P"], dtype = float)
+        kappa_R = np.asarray(self._last_kappa["kappa_R"], dtype = float)
 
-        fig, ax = plt.subplots(dpi=300)
-
-        ax.set_title('Planck- and Rosseland mean opacities')
-        ax.loglog(T, self._last_kappa['kappa_P'], color = 'red', alpha = 0.5, label= r'$\kappa_P(a(r),T)$')
-        ax.loglog(T, self._last_kappa['kappa_R'], color = 'blue', alpha = 0.5, label= r'$\kappa_R(a(r),T)$')
-
-        ax.set_xlabel('T [K]')
-        ax.set_ylabel(r'$\kappa$ [cm$^(2)$g$^{-1}$]')
-        
-        ax.grid(True, which = 'both')
-        ax.legend(loc = 'best')
-        plt.show()
-
-    def plot_3d(self):
-        """
-        function for plotting the resulting opacities in a logarithmic 3D-plot with colorbar: 
-        - x-axis: radius r [au]
-        - y-axis: temperature T [K]
-        - z-axis: opacities kappa_*(a(r),T) [cm^2 g^-1]
-        - colorbar: mass-weighted mean grain-size
-        """
-        if self._last_kappa is None:
-            raise RuntimeError('No opacities computed yet')
-
-        required_keys = {"r", "a", "T", "weights", "kappa_P", "kappa_R"}
-        missing_keys = required_keys.difference(self._last_kappa.keys())
-
-        if missing_keys:
-            raise RuntimeError(f"Missing data for 3D plot: {sorted(missing_keys)}")
-
-        au_cgs = apc.au.cgs.value
-        r_au = np.asarray(self._last_kappa["r"], dtype=float) / au_cgs
-        T = np.asarray(self._last_kappa["T"], dtype=float)
-        a_cm = np.asarray(self._last_kappa["a"], dtype=float)
-        weights = np.asarray(self._last_kappa["weights"], dtype=float)
-        kappa_P = np.asarray(self._last_kappa["kappa_P"], dtype=float)
-        kappa_R = np.asarray(self._last_kappa["kappa_R"], dtype=float)
         Nr, Na = weights.shape
 
-        if r_au.shape != (Nr,):
-            raise ValueError(f"r has shape {r_au.shape}, expected {(Nr,)}")
-
-        if T.shape != (Nr,):
-            raise ValueError(f"T has shape {T.shape}, expected {(Nr,)}")
-
-        if kappa_P.shape != (Nr,):
-            raise ValueError(f"kappa_P has shape {kappa_P.shape}, expected {(Nr,)}")
-
-        if kappa_R.shape != (Nr,):
-            raise ValueError(f"kappa_R has shape {kappa_R.shape}, expected {(Nr,)}")
-
-        # Build grain-size array with same shape as weights
+        # construct grain-size array
         if a_cm.ndim == 1:
-            if a_cm.shape != (Na,):
-                raise ValueError(f"a has shape {a_cm.shape}, expected {(Na,)}")
-            A = np.broadcast_to(a_cm[np.newaxis, :], weights.shape)
-        elif a_cm.shape == weights.shape:
-            A = a_cm
-        else:
-            raise ValueError(f"a has shape {a_cm.shape}. Expected {(Na,)} or {weights.shape}.")
+            A = np.broadcast_to(a_cm[np.newaxis, :], weights.shape) # Same grain-size grid at every radial position
+        elif a_cm.shape == weights.shape:   
+            A = a_cm # Radius-dependent grain-size grid
 
-        # Mass-weighted mean grain size
-        a_mean = np.sum(weights * A, axis=1)
+        # ensure that the weights are normalized
+        weight_sum = np.sum(weights, axis=1)
+        weights_normalized = np.divide(weights, weight_sum[:, np.newaxis], out=np.zeros_like(weights), where=weight_sum[:, np.newaxis] > 0)
 
-        # Valid points
-        valid_P = (np.isfinite(r_au) & (r_au > 0) & np.isfinite(T) & (T > 0) & np.isfinite(kappa_P) & (kappa_P > 0) & np.isfinite(a_mean) & (a_mean > 0))
+        # Mass-weighted mean grain size at every radius
+        a_mean = np.sum(weights_normalized * A,axis=1)
 
-        valid_R = (np.isfinite(r_au) & (r_au > 0) & np.isfinite(T) & (T > 0) & np.isfinite(kappa_R) & (kappa_R > 0) & np.isfinite(a_mean) & (a_mean > 0))
-
-        if not np.any(valid_P):
-            raise ValueError("No valid Planck-opacity points found.")
-
-        if not np.any(valid_R):
-            raise ValueError("No valid Rosseland-opacity points found.")
-
+        # Masks for valid logarithmic values
+        valid_common = (np.isfinite(T) & (T > 0) & np.isfinite(a_mean) & (a_mean > 0))
+        valid_P = (valid_common & np.isfinite(kappa_P) & (kappa_P > 0))
+        valid_R = (valid_common & np.isfinite(kappa_R) & (kappa_R > 0))
         positive_a_mean = a_mean[np.isfinite(a_mean) & (a_mean > 0)]
-        norm = LogNorm(vmin=np.min(positive_a_mean), vmax=np.max(positive_a_mean))
 
-        fig = plt.figure(figsize=(16, 7), dpi=200)
+        # Same color normalization for both plots
+        norm = LogNorm(vmin = np.min(positive_a_mean), vmax = np.max(positive_a_mean))
 
-        # Planck-mean opac
-        ax_P = fig.add_subplot(121, projection="3d")
-        sc_P = ax_P.scatter(np.log10(r_au[valid_P]), np.log10(T[valid_P]), np.log10(kappa_P[valid_P]), c=a_mean[valid_P], cmap="viridis", norm=norm, s=20)
 
-        ax_P.set_title("Planck-mean opacity")
-        ax_P.set_xlabel(r"$\log_{10}(r[\mathrm{au}])$")
-        ax_P.set_ylabel(r"$\log_{10}(T[\mathrm{K}])$")
-        ax_P.set_zlabel(r"$\log_{10}\left(\kappa_{\mathrm{P}}/"r"[\mathrm{cm^2\,g^{-1}}]\right)$")
+        fig, (ax_P, ax_R) = plt.subplots(1,2, figsize=(16, 7), dpi=300, sharex=True)
 
-        # Rosseland-mean opac
-        ax_R = fig.add_subplot(122, projection="3d")
-        sc_R = ax_R.scatter(np.log10(r_au[valid_R]), np.log10(T[valid_R]), np.log10(kappa_R[valid_R]), c=a_mean[valid_R], cmap="viridis", norm=norm, s=20)
+        sc_P = ax_P.scatter(T[valid_P], kappa_P[valid_P], c=a_mean[valid_P], cmap="viridis", norm=norm, s=30, alpha=0.8)
+        ax_P.set_title('Planck-mean opacity')
+        ax_P.set_xlabel(r'$T$ [K]')
+        ax_P.set_ylabel(r'$\kappa_{\mathrm{P}}$ [cm$^2$ g$^{-1}$]')
+        ax_P.set_xscale('log')
+        ax_P.set_yscale('log')
+        ax_P.grid(True, which = 'both', alpha = 0.3)
 
-        ax_R.set_title("Rosseland-mean opacity")
-        ax_R.set_xlabel(r"$\log_{10}(r[\mathrm{au}])$")
-        ax_R.set_ylabel(r"$\log_{10}(T[\mathrm{K}])$")
-        ax_R.set_zlabel(r"$\log_{10}\left(\kappa_{\mathrm{R}}/"r"[\mathrm{cm^2\,g^{-1}}]\right)$")
+        sc_R = ax_R.scatter(T[valid_R], kappa_R[valid_R], c=a_mean[valid_R], cmap="viridis", norm=norm, s=30, alpha=0.8)
+        ax_R.set_title('Rosseland-mean opacity')
+        ax_R.set_xlabel(r'$T$ [K]')
+        ax_R.set_ylabel(r'$\kappa_{\mathrm{R}}$ [cm$^2$ g$^{-1}$]')
+        ax_R.set_xscale('log')
+        ax_R.set_yscale('log')
+        ax_R.grid(True, which="both", alpha=0.3)
 
-        cbar = fig.colorbar(sc_R, ax=[ax_P, ax_R], shrink=0.7, pad=0.08)
-        cbar.set_label(r"Mass-weighted mean grain size $\bar a(r)$ [cm]")
+        cbar = fig.colorbar(sc_P, ax=[ax_P, ax_R], shrink=0.85, pad=0.03)
+        cbar.set_label(r'Mass-weighted mean grain size ' r'$\bar{a}(r)$ [cm]')
+
+        fig.suptitle('Mean opacities',fontsize=15)
 
         plt.show()
 
