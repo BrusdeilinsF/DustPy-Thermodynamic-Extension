@@ -80,11 +80,9 @@ class Temperature:
         """
         # setting dt to the half of a simulation timestep
         Sigmag_old = sim.Sigma_gas_old
-        #Sigmag_old = sim.gas._SigmaOld
         Sigmag_new = sim.gas.Sigma
         Sigmag = 0.5 * (Sigmag_new + Sigmag_old)
         Sigmad_old = sim.Sigma_dust_old
-        #Sigmag_old = sim.gas._SigmaOld
         Sigmad_new = sim.dust.Sigma
         Sigmad = 0.5 * (Sigmad_new + Sigmad_old)
 
@@ -92,33 +90,33 @@ class Temperature:
         T = sim.gas.T
         r = sim.grid.r
         T_lim = 1500
+
         # calling opacities 
         kappa_P, kappa_R = self.opac.mean_opacities(sim) 
 
         # setting 
         Sigma_dust_tot = Sigmad.sum(axis=1)
-        #Sigma_dust_tot = np.maximum(Sigma_dust_tot, 1e-10)
         
         #optical depth t_eff
-        kappa_P_gas = 1e-3
-        kappa_R_gas = 1e-3
+        kappa_P_gas = 1e-3 #fixed values are used for now until the computation of the gas opacities is added
+        kappa_R_gas = 1e-3 #fixed values are used for now until the computation of the gas opacities is added
 
-        tau_R = 0.25 * Sigma_dust_tot * (1- np.tanh((T - T_lim)/100)) * 0.5 * kappa_R + Sigmag * kappa_R_gas
-        tau_P = 0.25 * Sigma_dust_tot * (1- np.tanh((T - T_lim)/100)) * 0.5 * kappa_P + Sigmag * kappa_P_gas
+        # to consider the dust sublimation at about 1500K the "0.5 * (1 - tanh(x))"-term was implemented
+        tau_R = 0.25 * Sigma_dust_tot * (1- np.tanh((T - T_lim)/100)) * kappa_R + 0.5 * Sigmag * kappa_R_gas
+        tau_P = 0.25 * Sigma_dust_tot * (1- np.tanh((T - T_lim)/100)) * kappa_P + 0.5 * Sigmag * kappa_P_gas
         tau_eff = (3 * tau_R / 8) + np.sqrt(3) / 4 + 1 / (4 * tau_P)
 
-        #incidence angle
+        #incidence angle approximation
         h = H / r
         Theta0 = 2 * 4 * h / 7
         R_rim = 1
         Theta = Theta0 + 0.5 * (1 - Theta0) * (1- np.tanh((r - R_rim)/0.1))
-        T_lim = 1500
+        
         
 
         delta_t = 0.5 * sim.t.prevstepsize
 
         #since different definitions of nu can be found, feel free to try:
-
         nu = sim.gas.alpha * np.sqrt(self.gamma) * sim.gas.cs * H
         #nu = sim.gas.alpha * sim.gas.cs**2 / sim.grid.OmegaK
 
@@ -137,12 +135,14 @@ class Temperature:
         # Compressional heating/cooling is currently neglected. Therefore, the velocity divergence is set to zero.
         div_v = 0
         P = Sigmag * sim.gas.cs**2
-
         e = P / (self.gamma - 1)
+
+        # using the ideal gas approximation led to this specific heating coefficient
         Cv = Sigmag * kB /(self.mu * mH * (self.gamma - 1))
         dTdt = (-self.gamma * e * div_v + Q_tot )/ Cv
         dT = dTdt * delta_t
 
+        #clipping implemented due a numerical necessity (despite tested might still have more impact on the differential equation than observed yet!)
         dT_max = 0.05 * T
         dT = np.clip(dT,-dT_max, dT_max)
 
@@ -152,9 +152,8 @@ class Temperature:
 
     def plot_heating(self):
         """used for plotting the computed heating values"""
-        
-        r_au = self._last_Q["r"] / c.au
 
+        r_au = self._last_Q["r"] / c.au
         fig, ax = plt.subplots(dpi=300)
 
         ax.loglog(r_au, self._last_Q['Q_visc'], color = 'red', alpha = 0.5, label= 'Q_visc')
@@ -162,7 +161,7 @@ class Temperature:
         ax.loglog(r_au, np.abs(self._last_Q['Q_cool']),'--', color = 'blue', alpha = 0.5, label= '|Q_cool|')
         ax.loglog(r_au, self._last_Q['Q_ext'], '--',color = 'grey', alpha = 0.5, label= 'Q_ext')
 
-        ax.set_title("Heating")
+        ax.set_title('Heating')
         ax.set_xlabel('r [au]')
         ax.set_ylabel(r'$Q$ [erg cm$^{-2}$ s$^{-1}$]')
         ax.set_xlim(1, 400)
